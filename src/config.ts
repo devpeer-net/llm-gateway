@@ -126,3 +126,22 @@ export const config = {
 };
 
 export type GatewayConfig = typeof config;
+
+// Snapshot startup environment used for security assertions (config is loaded
+// once at process start, so these reflect the deploy's environment).
+const kNodeEnv = process.env.NODE_ENV;
+const kAllowNoAuth = process.env.ALLOW_NO_AUTH;
+
+/**
+ * Fail fast on an insecure production configuration. No-auth mode must never be
+ * used when `NODE_ENV=production` unless it is deliberately overridden with
+ * `ALLOW_NO_AUTH=true`. Throws so the caller can abort startup.
+ */
+export const assertSecureConfig = (): void => {
+  if (config.auth.mode === 'none' && kNodeEnv === 'production' && kAllowNoAuth !== 'true') {
+    throw new Error(
+      'AUTH_MODE=none (no authentication) is not permitted when NODE_ENV=production. ' +
+        'Set AUTH_MODE=jwt, or set ALLOW_NO_AUTH=true to explicitly override.'
+    );
+  }
+};

@@ -1,5 +1,13 @@
 import app from './src/app';
-import { config } from './src/config';
+import { config, assertSecureConfig } from './src/config';
+
+// Fail fast on an insecure production configuration (e.g. no-auth in prod).
+try {
+  assertSecureConfig();
+} catch (error) {
+  console.error(`FATAL: ${(error as Error).message}`);
+  process.exit(1);
+}
 
 const port = config.port;
 
