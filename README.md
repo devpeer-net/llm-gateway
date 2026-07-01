@@ -1,9 +1,36 @@
-# llm-gateway
+# LLM Gateway
 
-A generic, open-source, **OpenAI-compatible LLM gateway**. It exposes a single
-chat-completions endpoint and dispatches to multiple providers (OpenAI, Google
-Gemini via the OpenAI-compat API, and OpenRouter), with config-driven proxy
-models, pluggable authentication, and a pluggable quota store.
+## Overview
+
+This service was initially implemented for the
+[BrowseWiz](https://browsewiz.com) browser extension as a simple, secure and
+reliable LLM gateway sitting between clients and upstream model providers. It has
+since been generalized and de-branded into a standalone, reusable gateway that
+any application can adopt: it presents one stable OpenAI-compatible surface
+across multiple providers, and centralizes authentication, quota/credit
+accounting and rate limiting behind a single endpoint.
+
+## Key Features
+
+- **OpenAI-compatible API** — a single `POST /v1/chat/completions` endpoint with
+  both streaming (SSE) and non-streaming responses.
+- **Multi-provider dispatch** — routes to OpenAI, Google Gemini (OpenAI-compat)
+  and OpenRouter through one SDK, with per-engine request adaptation.
+- **Proxy models with failover** — virtual model ids that round-robin over real
+  models and fail over across providers (including an OpenRouter fallback) on
+  rate-limit (429) errors; fully config-driven.
+- **Pluggable authentication** — generic JWT verification (JWKS, public key or
+  shared secret) with optional issuer/audience checks, plus a no-auth mode for
+  local/dev.
+- **Pluggable quota & credits** — quota, credit accounting and rate limiting
+  behind a store abstraction: in-memory by default (no AWS) or DynamoDB for
+  production, selected via configuration.
+- **Editable model catalog** — models, engines and pricing coefficients live in
+  a simple JSON catalog you can tailor to your deployment.
+- **Secure & operable** — typed error handling, per-request logging, configurable
+  body limits, timeouts and trust-proxy hops.
+- **Easy to deploy** — parameterized Elastic Beanstalk + Nginx template and an
+  optional Dockerfile; every setting is environment-driven.
 
 ## Endpoints
 
