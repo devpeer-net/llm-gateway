@@ -66,4 +66,17 @@ describe('JwtAuthorizer', () => {
       .sign(encoded);
     expect(await authorizer.authorize(`Bearer ${goodIssuer}`)).toBe('user-123');
   });
+
+  it('rejects a token whose algorithm is not in the pinned allowlist', async () => {
+    // Secret source defaults to HS256; pin to RS256 so the HS256 token is refused.
+    const authorizer = loadAuthorizer({ AUTH_JWT_ALGORITHMS: 'RS256' });
+    const token = await makeToken({ sub: 'user-123' });
+    expect(await authorizer.authorize(`Bearer ${token}`)).toBeNull();
+  });
+
+  it('accepts a token whose algorithm is in the pinned allowlist', async () => {
+    const authorizer = loadAuthorizer({ AUTH_JWT_ALGORITHMS: 'HS256' });
+    const token = await makeToken({ sub: 'user-123' });
+    expect(await authorizer.authorize(`Bearer ${token}`)).toBe('user-123');
+  });
 });

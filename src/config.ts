@@ -61,6 +61,16 @@ const resolveAuthMode = (): AuthMode => {
   return mode === 'none' ? 'none' : 'jwt';
 };
 
+const parseAlgorithms = (): string[] | undefined => {
+  const raw = process.env.AUTH_JWT_ALGORITHMS;
+  if (!raw) return undefined;
+  const list = raw
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+  return list.length > 0 ? list : undefined;
+};
+
 export type QuotaStoreKind = 'memory' | 'dynamodb';
 
 const resolveQuotaStore = (): QuotaStoreKind => {
@@ -100,6 +110,7 @@ export const config = {
     secret: process.env.AUTH_JWT_SECRET,
     issuer: process.env.AUTH_JWT_ISSUER,
     audience: process.env.AUTH_JWT_AUDIENCE,
+    algorithms: parseAlgorithms(),
     userIdClaim: process.env.AUTH_USER_ID_CLAIM || 'sub',
     devUserId: process.env.AUTH_DEV_USER_ID || 'local-dev',
   },

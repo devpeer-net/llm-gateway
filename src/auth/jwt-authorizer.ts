@@ -56,6 +56,7 @@ export class JwtAuthorizer {
       const { payload } = await jwtVerify(token, key as any, {
         issuer: config.auth.issuer || undefined,
         audience: config.auth.audience || undefined,
+        algorithms: this.resolveAlgorithms(),
       });
       return this.extractUserId(payload);
     } catch (error) {
@@ -68,6 +69,22 @@ export class JwtAuthorizer {
     const claim = config.auth.userIdClaim;
     const value = (payload as Record<string, unknown>)[claim];
     return typeof value === 'string' && value.length > 0 ? value : null;
+  }
+
+  /**
+   * Pin the accepted JWS algorithms. An explicit `AUTH_JWT_ALGORITHMS` override
+   * wins; otherwise defaults are derived from the key source: RS256 for a
+   * JWKS/PEM public key, HS256 for a shared secret. This prevents accepting any
+   * algorithm the key type happens to support.
+   */
+  private resolveAlgorithms(): string[] {
+    if (config.auth.algorithms && config.auth.algorithms.length > 0) {
+      return config.auth.algorithms;
+    }
+    if (config.auth.jwksUrl || config.auth.publicKey) {
+      return ['RS256'];
+    }
+    return ['HS256'];
   }
 
   private getToken(authorizationHeader: string | undefined): string | null {
