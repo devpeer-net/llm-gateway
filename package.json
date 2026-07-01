@@ -1,0 +1,42 @@
+{
+  "name": "llm-gateway",
+  "version": "1.0.0",
+  "description": "Generic, open-source, OpenAI-compatible LLM gateway with multi-provider dispatch, proxy models, pluggable auth and quota.",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "esbuild server.ts --bundle --packages=bundle --outfile=dist/server.js --platform=node --loader:.json=json",
+    "start": "node dist/server.js",
+    "start:env": "node -r dotenv/config dist/server.js",
+    "dev": "ts-node server.ts",
+    "test": "jest --runInBand --forceExit",
+    "e2e": "ts-node --transpile-only -r dotenv/config e2e/run-e2e.ts",
+    "zip": "(mkdir -p node_modules || echo '') && zip -r deployment_package.zip dist/server.js node_modules package.json deploy/.platform/nginx/conf.d/client_max_body_size.conf",
+    "clean": "rm -rf dist deployment_package.zip",
+    "deploy": "npm run clean && npm run build && npm run test && npm run zip"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "express-rate-limit": "^7.4.1",
+    "jose": "^5.9.6",
+    "openai": "^6.9.1"
+  },
+  "optionalDependencies": {
+    "@aws-sdk/client-dynamodb": "^3.662.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/jest": "^29.5.13",
+    "@types/node": "^22.13.13",
+    "@types/supertest": "^6.0.2",
+    "esbuild": "^0.24.0",
+    "jest": "^29.7.0",
+    "sinon": "^19.0.2",
+    "supertest": "^7.1.0",
+    "ts-jest": "^29.2.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.2"
+  }
+}

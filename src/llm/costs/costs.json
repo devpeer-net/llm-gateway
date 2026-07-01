@@ -1,0 +1,65 @@
+[
+  {
+    "_comment": "Generic, de-branded sample catalog. Edit freely for your deployment.",
+    "model": "gpt-4o-mini",
+    "apiType": "SMALL_LLM",
+    "engine": "openai",
+    "menuVisible": true,
+    "inputTokenValue": 1,
+    "outputTokenValue": 4,
+    "maxInputTokens": 128000,
+    "maxOutputTokens": 16384
+  },
+  {
+    "model": "gpt-4o",
+    "apiType": "SMALL_LLM",
+    "engine": "openai",
+    "menuVisible": true,
+    "inputTokenValue": 25,
+    "outputTokenValue": 100,
+    "maxInputTokens": 128000,
+    "maxOutputTokens": 16384
+  },
+  {
+    "model": "gemini-2.5-flash",
+    "apiType": "SMALL_LLM",
+    "engine": "gemini",
+    "menuVisible": true,
+    "inputTokenValue": 1.5,
+    "outputTokenValue": 35,
+    "maxInputTokens": 1048576,
+    "maxOutputTokens": 65536
+  },
+  {
+    "model": "gemini-2.0-flash",
+    "apiType": "SMALL_LLM",
+    "engine": "gemini",
+    "menuVisible": true,
+    "inputTokenValue": 1,
+    "outputTokenValue": 4,
+    "maxInputTokens": 1048576,
+    "maxOutputTokens": 8192
+  },
+  {
+    "model": "llama-3.3-70b",
+    "apiType": "SMALL_LLM",
+    "engine": "openrouter",
+    "openRouterModel": "meta-llama/llama-3.3-70b-instruct",
+    "menuVisible": true,
+    "inputTokenValue": 1,
+    "outputTokenValue": 3,
+    "maxInputTokens": 131072,
+    "maxOutputTokens": 16384
+  },
+  {
+    "model": "deepseek-chat",
+    "apiType": "SMALL_LLM",
+    "engine": "openrouter",
+    "openRouterModel": "deepseek/deepseek-chat",
+    "menuVisible": true,
+    "inputTokenValue": 1,
+    "outputTokenValue": 3,
+    "maxInputTokens": 65536,
+    "maxOutputTokens": 8192
+  }
+]
