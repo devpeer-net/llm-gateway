@@ -11,6 +11,7 @@ import { calculateCredits, estimateCredits } from '../services/credits-service';
 import { kChatCompletionsPath } from '../paths';
 import { getApiTypeForModel } from '../llm/model-catalog';
 import { isProxyModel, getProxyModelList } from '../services/proxy-model-resolver';
+import { config } from '../config';
 
 const kQuotaExceededError = 'User has exceeded the quota';
 const kRateLimitExceededError = 'Rate limit exceeded';
@@ -20,8 +21,8 @@ export const kLlmRateLimitThreshold = 25_000_000; // tokens in the aggregation w
 const store = getQuotaStore();
 
 export const hasEnoughCredits = (usage: ApiUsage, req: Request): boolean => {
-  // Allow tests / non-production to bypass the production check.
-  if (process.env.NODE_ENV !== 'production' && process.env.JEST_WORKER_ID === undefined) {
+  // Fail closed: only bypass the check when enforcement is explicitly disabled.
+  if (!config.quota.enforcement) {
     return true;
   }
 
@@ -77,8 +78,8 @@ export const getRecentUsage = (apiUsage: ApiUsage, n: number): number => {
 };
 
 export const shouldRateLimit = (apiUsage: ApiUsage): boolean => {
-  // Only rate limit in production, but allow tests to run.
-  if (process.env.NODE_ENV !== 'production' && process.env.JEST_WORKER_ID === undefined) {
+  // Fail closed: only skip rate limiting when enforcement is explicitly disabled.
+  if (!config.quota.enforcement) {
     return false;
   }
 

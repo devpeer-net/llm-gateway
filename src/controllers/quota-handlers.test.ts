@@ -1,4 +1,4 @@
-import { describe, it, expect } from '@jest/globals';
+import { describe, it, expect, jest } from '@jest/globals';
 import type { Request } from 'express';
 
 // Ensure the quota logic runs in tests.
@@ -110,5 +110,43 @@ describe('shouldRateLimit', () => {
 
   it('returns false when the requests array is missing or empty', () => {
     expect(shouldRateLimit({ plan: SubscriptionPlan.BASIC, apiType: ApiType.SMALL_LLM } as any)).toBe(false);
+  });
+});
+
+describe('enforcement flag (fail closed)', () => {
+  const chatReq = {
+    path: kChatCompletionsPath,
+    body: { model: 'gpt-4o-mini', messages: [{ content: 'Lorem ipsum sit amet dolor priscit lol omg rofl' }] },
+  } as Request;
+  const overQuota = { usageCount: 9, quota: 10, bonusCredits: 2 } as any;
+  const rateLimited = {
+    plan: SubscriptionPlan.BASIC,
+    apiType: ApiType.SMALL_LLM,
+    requests: [{ usage: kLlmRateLimitThreshold + 1, timestamp: Date.now() }],
+  } as any;
+
+  const withEnforcement = (value: string | undefined, fn: (m: typeof import('./quota-handlers')) => void): void => {
+    const prev = process.env.QUOTA_ENFORCEMENT;
+    if (value === undefined) delete process.env.QUOTA_ENFORCEMENT;
+    else process.env.QUOTA_ENFORCEMENT = value;
+    jest.isolateModules(() => {
+      fn(require('./quota-handlers'));
+    });
+    if (prev === undefined) delete process.env.QUOTA_ENFORCEMENT;
+    else process.env.QUOTA_ENFORCEMENT = prev;
+  };
+
+  it('enforces by default when QUOTA_ENFORCEMENT is unset (fail closed)', () => {
+    withEnforcement(undefined, (m) => {
+      expect(m.hasEnoughCredits(overQuota, chatReq)).toBe(false);
+      expect(m.shouldRateLimit(rateLimited)).toBe(true);
+    });
+  });
+
+  it('bypasses checks only when QUOTA_ENFORCEMENT is explicitly off', () => {
+    withEnforcement('off', (m) => {
+      expect(m.hasEnoughCredits(overQuota, chatReq)).toBe(true);
+      expect(m.shouldRateLimit(rateLimited)).toBe(false);
+    });
   });
 });

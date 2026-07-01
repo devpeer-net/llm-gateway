@@ -68,6 +68,20 @@ const resolveQuotaStore = (): QuotaStoreKind => {
   return kind === 'dynamodb' ? 'dynamodb' : 'memory';
 };
 
+const resolveQuotaEnforcement = (): boolean => {
+  // Fail closed: quota/credit and rate-limit enforcement is ON unless it is
+  // explicitly disabled. This prevents a deploy that forgets to set
+  // NODE_ENV=production from silently running with all spend checks off.
+  const raw = (process.env.QUOTA_ENFORCEMENT || '').trim().toLowerCase();
+  const disabled = raw === 'off' || raw === 'false' || raw === 'no' || raw === '0';
+  if (disabled && process.env.NODE_ENV === 'production') {
+    console.warn(
+      'WARNING: QUOTA_ENFORCEMENT is disabled while NODE_ENV=production — quota and rate limiting are OFF.'
+    );
+  }
+  return !disabled;
+};
+
 export const config = {
   port: num(process.env.PORT, 3333),
   trustProxyHops: num(process.env.TRUST_PROXY_HOPS, 0),
@@ -92,6 +106,7 @@ export const config = {
 
   quota: {
     store: resolveQuotaStore(),
+    enforcement: resolveQuotaEnforcement(),
     apiUsageTable: process.env.API_USAGE_TABLE || 'apiUsage',
     awsRegion: process.env.AWS_REGION || 'us-east-1',
   },
