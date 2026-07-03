@@ -4,6 +4,7 @@ import { isKnownModel } from '../llm/model-catalog';
 import { isProxyModel } from '../services/proxy-model-resolver';
 import { HttpApiError } from '../types';
 import { ChatCompletion } from 'openai/resources';
+import { ChatCompletionChunk } from 'openai/resources/chat/completions';
 import { quotaHandler, updateChatQuotaHandler } from './quota-handlers';
 
 export const chatValidateHandler = (req: Request, res: Response, next: any) => {
@@ -68,6 +69,10 @@ export const generateStreamHandler = async (req: Request, res: Response, next: a
     return;
   }
 
+  const writeSseEvent = (data: string) => {
+    res.write(`data: ${data}\n\n`);
+  };
+
   try {
     let keepGenerating = true;
     res.on('close', () => {
@@ -75,7 +80,7 @@ export const generateStreamHandler = async (req: Request, res: Response, next: a
       keepGenerating = false;
     });
 
-    const genRes: ChatCompletion = await generate(req.body, res.locals.apiUsage, (delta: string): boolean => {
+    const genRes: ChatCompletion = await generate(req.body, res.locals.apiUsage, (chunk: ChatCompletionChunk): boolean => {
       if (!res.headersSent) {
         // Establish SSE with the client.
         res.set({
@@ -85,11 +90,13 @@ export const generateStreamHandler = async (req: Request, res: Response, next: a
         });
         res.flushHeaders();
       }
-      res.write(delta);
+      writeSseEvent(JSON.stringify(chunk));
       return keepGenerating;
     });
     res.locals.generateResponse = genRes;
-    res.end(JSON.stringify(genRes));
+    // Terminate the SSE stream per the OpenAI streaming protocol.
+    writeSseEvent('[DONE]');
+    res.end();
     next();
   } catch (error: any) {
     res.locals.logger.error('Error generating content', error);
@@ -100,13 +107,13 @@ export const generateStreamHandler = async (req: Request, res: Response, next: a
         res.status(500).json({ error: 'Error generating content' });
       }
     } else {
-      if (error instanceof HttpApiError && error.statusCode === 403) {
-        res.write(
-          "I'm sorry, I cannot continue this conversation. My response was flagged as potentially harmful. If you believe this is an error, please try rephrasing your request."
-        );
-      } else {
-        res.write("I'm sorry, I encountered an error while generating content. Please try again later.");
-      }
+      const message =
+        error instanceof HttpApiError && error.statusCode === 403
+          ? "I'm sorry, I cannot continue this conversation. My response was flagged as potentially harmful. If you believe this is an error, please try rephrasing your request."
+          : "I'm sorry, I encountered an error while generating content. Please try again later.";
+      // Surface the error as an SSE event, then close the stream.
+      writeSseEvent(JSON.stringify({ error: { message } }));
+      writeSseEvent('[DONE]');
       res.end();
     }
   }

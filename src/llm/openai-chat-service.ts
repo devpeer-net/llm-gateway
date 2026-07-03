@@ -27,7 +27,7 @@ export const generateOpenAI = async (
   openAI: OpenAI,
   params: ChatCompletionCreateParamsBase,
   isOpenrouter: boolean,
-  generateCallback?: (delta: string) => boolean,
+  generateCallback?: (chunk: ChatCompletionChunk) => boolean,
   includeUsage: boolean = true
 ): Promise<ChatCompletion> => {
   let payload: ChatCompletionCreateParamsNonStreaming | ChatCompletionCreateParamsStreaming | any = {
@@ -134,7 +134,7 @@ const estimatePayloadTokens = (messages: ChatCompletionMessageParam[]): number =
 const handleGenerateStream = async (
   openAI: OpenAI,
   payload: ChatCompletionCreateParamsStreaming,
-  generateCallback: (delta: string) => boolean
+  generateCallback: (chunk: ChatCompletionChunk) => boolean
 ): Promise<ChatCompletion> => {
   const stream: Stream<ChatCompletionChunk> = await openAI.chat.completions.create(payload);
   let lastChunk: ChatCompletionChunk | undefined;
@@ -145,7 +145,7 @@ const handleGenerateStream = async (
     lastChunk = chunk;
     tool_calls = aggregateToolCalls(tool_calls, chunk.choices[0]?.delta?.tool_calls || []);
     streamedContent += chunk.choices[0]?.delta?.content || '';
-    shouldContinue = generateCallback(chunk.choices[0]?.delta?.content || '');
+    shouldContinue = generateCallback(chunk);
     if (!shouldContinue) {
       break;
     }

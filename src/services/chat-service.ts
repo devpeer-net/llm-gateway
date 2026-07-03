@@ -9,7 +9,7 @@ import { generateOpenAI } from '../llm/openai-chat-service';
 import openAI from '../providers/openai-client';
 import openRouterAPI from '../providers/openrouter-client';
 import geminiAI from '../providers/gemini-client';
-import { ChatCompletionCreateParamsBase } from 'openai/resources/chat/completions';
+import { ChatCompletionChunk, ChatCompletionCreateParamsBase } from 'openai/resources/chat/completions';
 import { ChatCompletion } from 'openai/resources';
 import {
   isProxyModel,
@@ -24,7 +24,7 @@ export const mapToOpenRouterModel = (model: string): string => getOpenRouterMode
 export const generate = async (
   body: ChatRequestBody,
   apiUsage: ApiUsage,
-  generateCallback?: (delta: string) => boolean
+  generateCallback?: (chunk: ChatCompletionChunk) => boolean
 ): Promise<ChatCompletion> => {
   if (isProxyModel(body.model)) {
     return generateWithProxyFallback(body, apiUsage, generateCallback);
@@ -43,7 +43,7 @@ export const generate = async (
 const generateWithProxyFallback = async (
   body: ChatRequestBody,
   apiUsage: ApiUsage,
-  generateCallback?: (delta: string) => boolean
+  generateCallback?: (chunk: ChatCompletionChunk) => boolean
 ): Promise<ChatCompletion> => {
   const proxyId = body.model;
   // Snapshot: ordered starting from the current round-robin position.
@@ -91,7 +91,7 @@ const generateViaOpenRouter = async (
   openRouterModelId: string,
   body: ChatRequestBody,
   _apiUsage: ApiUsage,
-  generateCallback?: (delta: string) => boolean
+  generateCallback?: (chunk: ChatCompletionChunk) => boolean
 ): Promise<ChatCompletion> => {
   const completionParams: ChatCompletionCreateParamsBase = {
     model: openRouterModelId,
@@ -114,7 +114,7 @@ const generateDirect = async (
   model: string,
   body: ChatRequestBody,
   apiUsage: ApiUsage,
-  generateCallback?: (delta: string) => boolean
+  generateCallback?: (chunk: ChatCompletionChunk) => boolean
 ): Promise<ChatCompletion> => {
   let completionParams: ChatCompletionCreateParamsBase = {
     model,
