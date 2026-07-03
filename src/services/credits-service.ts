@@ -3,6 +3,7 @@ import { costs } from '../llm/model-catalog';
 import { CompletionUsage, Responses } from 'openai/resources';
 import { Request } from 'express';
 import { kChatCompletionsPath } from '../paths';
+import { isProxyModel, resolveProxyModel } from './proxy-model-resolver';
 
 export const calculateCredits = (
   model: AIModel,
@@ -42,6 +43,11 @@ export const estimateCredits = (req: Request): number => {
   try {
     if (path.includes(kChatCompletionsPath)) {
       const chatBody = body as ChatRequestBody;
+      // Proxy model IDs are not in the cost table; resolve to the primary
+      // underlying real model so cost estimation doesn't throw.
+      const effectiveModel = isProxyModel(chatBody.model)
+        ? (resolveProxyModel(chatBody.model) ?? chatBody.model)
+        : chatBody.model;
       const estimatedTokens =
         chatBody.messages?.map((msg) => (msg.content ? (msg.content as string).length : 0)).reduce((acc, cur) => acc + cur, 0) / 4 || 0;
       const usageMetadata: CompletionUsage = {
@@ -49,7 +55,7 @@ export const estimateCredits = (req: Request): number => {
         completion_tokens: 0,
         total_tokens: estimatedTokens,
       };
-      return calculateCredits(chatBody.model as AIModel, usageMetadata);
+      return calculateCredits(effectiveModel as AIModel, usageMetadata);
     }
     console.warn(`No credits calculation for path: ${path}`);
     return 0;
