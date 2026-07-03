@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { generate } from '../services/chat-service';
 import { isKnownModel } from '../llm/model-catalog';
 import { isProxyModel } from '../services/proxy-model-resolver';
-import { HttpApiError } from '../types';
+import OpenAI from 'openai';
 import { ChatCompletion } from 'openai/resources';
 import { ChatCompletionChunk } from 'openai/resources/chat/completions';
 import { quotaHandler, updateChatQuotaHandler } from './quota-handlers';
@@ -55,10 +55,10 @@ export const generateHandler = async (req: Request, res: Response, next: any) =>
     next();
   } catch (error: any) {
     res.locals.logger.error('Error generating content:', error);
-    if (error instanceof HttpApiError) {
-      res.status(error.statusCode).json({ error: error.message });
+    if (error instanceof OpenAI.APIError) {
+      res.status(error.status).json(error.error ?? { error: error.message });
     } else {
-      res.status(500).json({ error: 'Error generating content' });
+      res.status(500).json({ error: 'Internal server error' });
     }
   }
 };
@@ -101,18 +101,17 @@ export const generateStreamHandler = async (req: Request, res: Response, next: a
   } catch (error: any) {
     res.locals.logger.error('Error generating content', error);
     if (!res.headersSent) {
-      if (error instanceof HttpApiError) {
-        res.status(error.statusCode).json({ error: error.message });
+      if (error instanceof OpenAI.APIError) {
+        res.status(error.status).json(error.error ?? { error: error.message });
       } else {
-        res.status(500).json({ error: 'Error generating content' });
+        res.status(500).json({ error: 'Internal server error' });
       }
     } else {
-      const message =
-        error instanceof HttpApiError && error.statusCode === 403
-          ? "I'm sorry, I cannot continue this conversation. My response was flagged as potentially harmful. If you believe this is an error, please try rephrasing your request."
-          : "I'm sorry, I encountered an error while generating content. Please try again later.";
-      // Surface the error as an SSE event, then close the stream.
-      writeSseEvent(JSON.stringify({ error: { message } }));
+      // Headers already sent — surface the error as an SSE event then close.
+      const body = error instanceof OpenAI.APIError
+        ? (error.error ?? { error: error.message })
+        : { error: 'Internal server error' };
+      writeSseEvent(JSON.stringify({ error: body }));
       writeSseEvent('[DONE]');
       res.end();
     }

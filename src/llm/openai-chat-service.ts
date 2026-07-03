@@ -11,7 +11,6 @@ import {
   ChatCompletionMessageToolCall,
 } from 'openai/resources/chat/completions';
 import { Stream } from 'openai/streaming';
-import { HttpApiError } from '../types';
 
 export const checkConnection = async (openAI: OpenAI): Promise<boolean> => {
   try {
@@ -58,12 +57,7 @@ const handleGenerate = async (
   openAI: OpenAI,
   payload: ChatCompletionCreateParamsNonStreaming
 ): Promise<ChatCompletion> => {
-  const chatCompletion: ChatCompletion = await openAI.chat.completions.create(payload);
-  const choice = chatCompletion.choices[0];
-  if (choice.finish_reason === 'content_filter') {
-    throw new HttpApiError(403, `Model refused to generate content. Reason: ${choice.message.refusal}`);
-  }
-  return chatCompletion;
+  return openAI.chat.completions.create(payload);
 };
 
 export const aggregateToolCalls = (
