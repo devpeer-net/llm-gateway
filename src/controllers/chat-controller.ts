@@ -56,9 +56,12 @@ export const generateHandler = async (req: Request, res: Response, next: any) =>
   } catch (error: any) {
     res.locals.logger.error('Error generating content:', error);
     if (error instanceof OpenAI.APIError) {
-      res.status(error.status).json(error.error ?? { error: error.message });
+      // Re-wrap in the {error:{...}} envelope expected by OpenAI-compatible clients.
+      // error.error is the inner object; when the SDK couldn't parse the body it is null.
+      const body = error.error != null ? { error: error.error } : { error: { message: error.message } };
+      res.status(error.status).json(body);
     } else {
-      res.status(500).json({ error: 'Internal server error' });
+      res.status(500).json({ error: { message: 'Internal server error' } });
     }
   }
 };
@@ -102,16 +105,17 @@ export const generateStreamHandler = async (req: Request, res: Response, next: a
     res.locals.logger.error('Error generating content', error);
     if (!res.headersSent) {
       if (error instanceof OpenAI.APIError) {
-        res.status(error.status).json(error.error ?? { error: error.message });
+        const body = error.error != null ? { error: error.error } : { error: { message: error.message } };
+        res.status(error.status).json(body);
       } else {
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ error: { message: 'Internal server error' } });
       }
     } else {
       // Headers already sent — surface the error as an SSE event then close.
-      const body = error instanceof OpenAI.APIError
-        ? (error.error ?? { error: error.message })
-        : { error: 'Internal server error' };
-      writeSseEvent(JSON.stringify({ error: body }));
+      const errorBody = error instanceof OpenAI.APIError
+        ? (error.error != null ? { error: error.error } : { error: { message: error.message } })
+        : { error: { message: 'Internal server error' } };
+      writeSseEvent(JSON.stringify(errorBody));
       writeSseEvent('[DONE]');
       res.end();
     }

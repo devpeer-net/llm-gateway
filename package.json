@@ -11,6 +11,7 @@
     "test": "jest --runInBand --forceExit",
     "e2e": "ts-node --transpile-only -r dotenv/config e2e/run-e2e.ts",
     "e2e:sse": "ts-node --transpile-only -r dotenv/config e2e/sse-stream.e2e.ts",
+    "e2e:errors": "ts-node --transpile-only -r dotenv/config e2e/error-forwarding.e2e.ts",
     "zip": "(mkdir -p node_modules || echo '') && zip -r deployment_package.zip dist/server.js node_modules package.json deploy/.platform/nginx/conf.d/client_max_body_size.conf",
     "clean": "rm -rf dist deployment_package.zip",
     "deploy": "npm run clean && npm run build && npm run test && npm run zip"
