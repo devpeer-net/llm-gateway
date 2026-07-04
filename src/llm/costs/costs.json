@@ -2,7 +2,7 @@
   {
     "_comment": "Generic, de-branded sample catalog. Edit freely for your deployment.",
     "model": "gpt-4o-mini",
-    "engine": "openai",
+    "providers": [{ "name": "openai" }],
     "inputTokenValue": 1,
     "outputTokenValue": 4,
     "maxInputTokens": 128000,
@@ -10,7 +10,7 @@
   },
   {
     "model": "gpt-4o",
-    "engine": "openai",
+    "providers": [{ "name": "openai" }],
     "inputTokenValue": 25,
     "outputTokenValue": 100,
     "maxInputTokens": 128000,
@@ -18,7 +18,7 @@
   },
   {
     "model": "gemini-2.5-flash",
-    "engine": "gemini",
+    "providers": [{ "name": "gemini" }],
     "inputTokenValue": 1.5,
     "outputTokenValue": 35,
     "maxInputTokens": 1048576,
@@ -26,10 +26,9 @@
   },
   {
     "model": "gemini-3.1-flash-lite",
-    "engine": "gemini",
     "providers": [
-      { "engine": "gemini" },
-      { "engine": "openrouter", "openRouterModel": "google/gemini-3.1-flash-lite" }
+      { "name": "gemini" },
+      { "name": "openrouter", "providerModelId": "google/gemini-3.1-flash-lite" }
     ],
     "inputTokenValue": 1.25,
     "outputTokenValue": 21,
@@ -38,7 +37,7 @@
   },
   {
     "model": "gemini-2.0-flash",
-    "engine": "gemini",
+    "providers": [{ "name": "gemini" }],
     "inputTokenValue": 1,
     "outputTokenValue": 4,
     "maxInputTokens": 1048576,
@@ -46,8 +45,7 @@
   },
   {
     "model": "llama-3.3-70b",
-    "engine": "openrouter",
-    "openRouterModel": "meta-llama/llama-3.3-70b-instruct",
+    "providers": [{ "name": "openrouter", "providerModelId": "meta-llama/llama-3.3-70b-instruct" }],
     "inputTokenValue": 1,
     "outputTokenValue": 3,
     "maxInputTokens": 131072,
@@ -55,8 +53,7 @@
   },
   {
     "model": "deepseek-chat",
-    "engine": "openrouter",
-    "openRouterModel": "deepseek/deepseek-chat",
+    "providers": [{ "name": "openrouter", "providerModelId": "deepseek/deepseek-chat" }],
     "inputTokenValue": 1,
     "outputTokenValue": 3,
     "maxInputTokens": 65536,

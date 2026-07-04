@@ -196,7 +196,7 @@ describe('provider-level fallback', () => {
   });
 
   it('routes a single-provider model directly without attempting fallback', async () => {
-    // gpt-4o has no providers array → derives single provider [{ engine: 'openai' }].
+    // gpt-4o has providers: [{ name: 'openai' }].
     mockGenerate.mockResolvedValueOnce(mockCompletion as any);
 
     const body = { model: 'gpt-4o', messages: mockMessages } as any;

@@ -3,30 +3,26 @@ import costsData from './costs/costs.json';
 
 /** A single provider that can serve a model, in priority order. */
 export interface ModelProviderEntry {
-  engine: ModelEngine;
-  /** Raw OpenRouter model ID (e.g. 'google/gemini-3.1-flash-lite'). Required when engine is 'openrouter'. */
-  openRouterModel?: string;
+  name: ModelEngine;
+  /** Provider-specific model identifier (e.g. 'google/gemini-3.1-flash-lite' for OpenRouter). */
+  providerModelId?: string;
 }
 
 export interface ModelCatalogEntry extends ModelCost {
   displayName?: string;
   vendor?: ModelVendor;
-  engine?: ModelEngine;
-  openRouterModel?: string;
   legacy?: boolean;
   /**
    * Ordered list of providers to try for this model.
    * The first entry is the primary provider; subsequent entries are fallbacks
    * used when the primary has no API key configured or returns a server error (5xx).
-   * When absent the single provider is derived from `engine` / `openRouterModel`.
    */
-  providers?: ModelProviderEntry[];
+  providers: ModelProviderEntry[];
 }
 
 export interface NormalizedModelCatalogEntry extends ModelCatalogEntry {
   displayName: string;
   vendor: ModelVendor;
-  engine: ModelEngine;
 }
 
 /** Raw cost coefficients, exported for credit calculations. */
@@ -73,19 +69,10 @@ const inferVendor = (modelId: string): ModelVendor => {
   return 'unknown';
 };
 
-const inferEngine = (entry: ModelCatalogEntry): ModelEngine => {
-  if (entry.engine) return entry.engine;
-  if (entry.openRouterModel) return 'openrouter';
-  const vendor = entry.vendor ?? inferVendor(entry.model);
-  if (vendor === 'google' && entry.model.startsWith('gemini-')) return 'gemini';
-  return 'openai';
-};
-
 const normalizeModelEntry = (entry: ModelCatalogEntry): NormalizedModelCatalogEntry => {
   const vendor = entry.vendor ?? inferVendor(entry.model);
   const displayName = entry.displayName ?? formatModelDisplayName(entry.model);
-  const engine = inferEngine({ ...entry, vendor });
-  return { ...entry, vendor, displayName, engine };
+  return { ...entry, vendor, displayName };
 };
 
 export const kModelCatalog: NormalizedModelCatalogEntry[] = (costs as ModelCatalogEntry[]).map(
@@ -97,30 +84,21 @@ export const getModelById = (modelId: string): NormalizedModelCatalogEntry | und
 
 export const isKnownModel = (modelId: string): boolean => Boolean(getModelById(modelId));
 
+/** Return the ordered list of providers for a model. */
+export const getModelProviders = (modelId: string): ModelProviderEntry[] =>
+  getModelById(modelId)?.providers ?? [];
+
+export const getOpenRouterModelId = (modelId: string): string => {
+  const orProvider = getModelProviders(modelId).find(p => p.name === 'openrouter');
+  return orProvider?.providerModelId ?? modelId;
+};
+
 export const isOpenAIModel = (modelId: string): boolean =>
-  getModelById(modelId)?.engine === 'openai';
+  getModelProviders(modelId)[0]?.name === 'openai';
 
 export const isGeminiModel = (modelId: string): boolean =>
-  getModelById(modelId)?.engine === 'gemini';
+  getModelProviders(modelId)[0]?.name === 'gemini';
 
 export const isOpenRouterModel = (modelId: string): boolean =>
-  getModelById(modelId)?.engine === 'openrouter';
-
-export const getOpenRouterModelId = (modelId: string): string =>
-  getModelById(modelId)?.openRouterModel ?? modelId;
-
-/**
- * Return the ordered list of providers for a model.
- * If the catalog entry has an explicit `providers` array it is returned as-is.
- * Otherwise a single-entry list is derived from the entry's `engine` and
- * `openRouterModel` fields for backward compatibility.
- */
-export const getModelProviders = (modelId: string): ModelProviderEntry[] => {
-  const entry = getModelById(modelId);
-  if (!entry) return [];
-  if (entry.providers && entry.providers.length > 0) return entry.providers;
-  const provider: ModelProviderEntry = { engine: entry.engine };
-  if (entry.openRouterModel) provider.openRouterModel = entry.openRouterModel;
-  return [provider];
-};
+  getModelProviders(modelId)[0]?.name === 'openrouter';
 

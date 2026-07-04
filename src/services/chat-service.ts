@@ -32,11 +32,11 @@ export const generate = async (
   return generateWithProviderFallback(body.model, body, apiUsage, generateCallback);
 };
 
-/** Returns true if the named engine has a real API key configured at startup. */
-const isProviderAvailable = (engine: ModelEngine): boolean => {
-  if (engine === 'gemini') return isGeminiConfigured;
-  if (engine === 'openai') return isOpenAIConfigured;
-  if (engine === 'openrouter') return isOpenRouterConfigured;
+/** Returns true if the named provider has a real API key configured at startup. */
+const isProviderAvailable = (name: ModelEngine): boolean => {
+  if (name === 'gemini') return isGeminiConfigured;
+  if (name === 'openai') return isOpenAIConfigured;
+  if (name === 'openrouter') return isOpenRouterConfigured;
   return false;
 };
 
@@ -56,7 +56,7 @@ const generateWithProviderFallback = async (
   const allProviders = getModelProviders(model);
   // Skip providers with no key; if all are unconfigured attempt all anyway so
   // the first one surfaces a meaningful auth error rather than a silent skip.
-  const configured = allProviders.filter(p => isProviderAvailable(p.engine));
+  const configured = allProviders.filter(p => isProviderAvailable(p.name));
   const candidates = configured.length > 0 ? configured : allProviders;
 
   let lastError: unknown;
@@ -69,7 +69,7 @@ const generateWithProviderFallback = async (
       if (isServerError(error) || isAuthError(error)) {
         if (i < candidates.length - 1) {
           console.warn(
-            `[provider-fallback] ${provider.engine} failed for ${model} (status ${(error as any)?.status ?? 'unknown'}), trying next provider`
+            `[provider-fallback] ${provider.name} failed for ${model} (status ${(error as any)?.status ?? 'unknown'}), trying next provider`
           );
         }
         continue;
@@ -103,7 +103,7 @@ const generateWithProxyFallback = async (
     console.log(`[proxy-model] Attempting ${model} for ${proxyId} (attempt ${i + 1}/${modelsToTry.length})`);
     // Use the primary configured provider for each proxy model.
     const providers = getModelProviders(model);
-    const provider = providers.find(p => isProviderAvailable(p.engine)) ?? providers[0];
+    const provider = providers.find(p => isProviderAvailable(p.name)) ?? providers[0];
 
     try {
       const result = await generateViaProvider(model, provider, body, apiUsage, generateCallback);
@@ -154,7 +154,7 @@ const generateViaProvider = async (
     ...(body.safety_identifier && { safety_identifier: body.safety_identifier }),
   };
 
-  switch (provider.engine) {
+  switch (provider.name) {
     case 'gemini': {
       // Gemini (OpenAI-compat) does not support parallel_tool_calls, user, or custom fields.
       const { parallel_tool_calls, user, safety_identifier, ...geminiParams } = completionParams as any;
@@ -163,11 +163,11 @@ const generateViaProvider = async (
     case 'openai':
       return await generateOpenAI(openAI, completionParams, false, generateCallback);
     case 'openrouter': {
-      const orModel = provider.openRouterModel ?? mapToOpenRouterModel(model);
+      const orModel = provider.providerModelId ?? mapToOpenRouterModel(model);
       return await generateOpenAI(openRouterAPI, { ...completionParams, model: orModel }, true, generateCallback);
     }
     default:
-      throw new Error(`Unknown engine: ${(provider as any).engine}`);
+      throw new Error(`Unknown provider: ${(provider as any).name}`);
   }
 };
 
