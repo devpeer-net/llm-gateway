@@ -125,8 +125,6 @@ export const config = {
   proxyModels: parseProxyModels(),
 };
 
-export type GatewayConfig = typeof config;
-
 // Snapshot startup environment used for security assertions (config is loaded
 // once at process start, so these reflect the deploy's environment).
 const kNodeEnv = process.env.NODE_ENV;

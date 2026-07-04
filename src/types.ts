@@ -21,12 +21,6 @@ export interface AuthUser {
 
 // ─── Chat request / response ────────────────────────────────────────────────
 
-export interface Message {
-  role: string;
-  content: string;
-  tool_calls?: Array<ChatCompletionMessageToolCall>;
-}
-
 export interface ChatRequestBody {
   model: string;
   messages: ChatCompletionMessageParam[];
@@ -35,14 +29,6 @@ export interface ChatRequestBody {
   parallel_tool_calls?: boolean;
   user?: string;
   safety_identifier?: string;
-}
-
-export interface ChatCompletionsResponse {
-  choices: ChatCompletion[];
-}
-
-export interface ChatCompletion {
-  message: Message;
 }
 
 // ─── Model catalog / costs ──────────────────────────────────────────────────

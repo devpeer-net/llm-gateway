@@ -67,7 +67,4 @@ export const getQuotaStore = (): QuotaStore => {
   return cachedStore!;
 };
 
-/** Test helper to reset the cached singleton between test cases. */
-export const __resetQuotaStore = (): void => {
-  cachedStore = undefined;
-};
+

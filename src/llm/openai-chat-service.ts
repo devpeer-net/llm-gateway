@@ -12,16 +12,6 @@ import {
 } from 'openai/resources/chat/completions';
 import { Stream } from 'openai/streaming';
 
-export const checkConnection = async (openAI: OpenAI): Promise<boolean> => {
-  try {
-    await openAI.models.list();
-    return true;
-  } catch (error: any) {
-    console.error('OpenAI connection error:', error.message);
-    return false;
-  }
-};
-
 export const generateOpenAI = async (
   openAI: OpenAI,
   params: ChatCompletionCreateParamsBase,

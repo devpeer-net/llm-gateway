@@ -1,12 +1,26 @@
 import { LLMModel, ModelCost, ModelEngine, ModelVendor } from '../types';
 import costsData from './costs/costs.json';
 
+/** A single provider that can serve a model, in priority order. */
+export interface ModelProviderEntry {
+  engine: ModelEngine;
+  /** Raw OpenRouter model ID (e.g. 'google/gemini-3.1-flash-lite'). Required when engine is 'openrouter'. */
+  openRouterModel?: string;
+}
+
 export interface ModelCatalogEntry extends ModelCost {
   displayName?: string;
   vendor?: ModelVendor;
   engine?: ModelEngine;
   openRouterModel?: string;
   legacy?: boolean;
+  /**
+   * Ordered list of providers to try for this model.
+   * The first entry is the primary provider; subsequent entries are fallbacks
+   * used when the primary has no API key configured or returns a server error (5xx).
+   * When absent the single provider is derived from `engine` / `openRouterModel`.
+   */
+  providers?: ModelProviderEntry[];
 }
 
 export interface NormalizedModelCatalogEntry extends ModelCatalogEntry {
@@ -78,18 +92,10 @@ export const kModelCatalog: NormalizedModelCatalogEntry[] = (costs as ModelCatal
   normalizeModelEntry
 );
 
-export const getModelCatalog = (): NormalizedModelCatalogEntry[] => kModelCatalog;
-
 export const getModelById = (modelId: string): NormalizedModelCatalogEntry | undefined =>
   kModelCatalog.find((entry) => entry.model === modelId);
 
 export const isKnownModel = (modelId: string): boolean => Boolean(getModelById(modelId));
-
-export const getModelDisplayName = (modelId: string): string =>
-  getModelById(modelId)?.displayName ?? modelId;
-
-export const getModelEngine = (modelId: string): ModelEngine | undefined =>
-  getModelById(modelId)?.engine;
 
 export const isOpenAIModel = (modelId: string): boolean =>
   getModelById(modelId)?.engine === 'openai';
@@ -102,4 +108,19 @@ export const isOpenRouterModel = (modelId: string): boolean =>
 
 export const getOpenRouterModelId = (modelId: string): string =>
   getModelById(modelId)?.openRouterModel ?? modelId;
+
+/**
+ * Return the ordered list of providers for a model.
+ * If the catalog entry has an explicit `providers` array it is returned as-is.
+ * Otherwise a single-entry list is derived from the entry's `engine` and
+ * `openRouterModel` fields for backward compatibility.
+ */
+export const getModelProviders = (modelId: string): ModelProviderEntry[] => {
+  const entry = getModelById(modelId);
+  if (!entry) return [];
+  if (entry.providers && entry.providers.length > 0) return entry.providers;
+  const provider: ModelProviderEntry = { engine: entry.engine };
+  if (entry.openRouterModel) provider.openRouterModel = entry.openRouterModel;
+  return [provider];
+};
 
