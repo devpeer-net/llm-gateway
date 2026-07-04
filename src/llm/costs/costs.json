@@ -3,7 +3,6 @@
     "_comment": "Generic, de-branded sample catalog. Edit freely for your deployment.",
     "model": "gpt-4o-mini",
     "engine": "openai",
-    "menuVisible": true,
     "inputTokenValue": 1,
     "outputTokenValue": 4,
     "maxInputTokens": 128000,
@@ -12,7 +11,6 @@
   {
     "model": "gpt-4o",
     "engine": "openai",
-    "menuVisible": true,
     "inputTokenValue": 25,
     "outputTokenValue": 100,
     "maxInputTokens": 128000,
@@ -21,7 +19,6 @@
   {
     "model": "gemini-2.5-flash",
     "engine": "gemini",
-    "menuVisible": true,
     "inputTokenValue": 1.5,
     "outputTokenValue": 35,
     "maxInputTokens": 1048576,
@@ -30,7 +27,6 @@
   {
     "model": "gemini-3.1-flash-lite",
     "engine": "gemini",
-    "menuVisible": true,
     "inputTokenValue": 1.25,
     "outputTokenValue": 21,
     "maxInputTokens": 1048576,
@@ -39,7 +35,6 @@
   {
     "model": "gemini-2.0-flash",
     "engine": "gemini",
-    "menuVisible": true,
     "inputTokenValue": 1,
     "outputTokenValue": 4,
     "maxInputTokens": 1048576,
@@ -49,7 +44,6 @@
     "model": "llama-3.3-70b",
     "engine": "openrouter",
     "openRouterModel": "meta-llama/llama-3.3-70b-instruct",
-    "menuVisible": true,
     "inputTokenValue": 1,
     "outputTokenValue": 3,
     "maxInputTokens": 131072,
@@ -59,7 +53,6 @@
     "model": "deepseek-chat",
     "engine": "openrouter",
     "openRouterModel": "deepseek/deepseek-chat",
-    "menuVisible": true,
     "inputTokenValue": 1,
     "outputTokenValue": 3,
     "maxInputTokens": 65536,

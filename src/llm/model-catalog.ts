@@ -4,7 +4,6 @@ import costsData from './costs/costs.json';
 export interface ModelCatalogEntry extends ModelCost {
   displayName?: string;
   vendor?: ModelVendor;
-  menuVisible?: boolean;
   engine?: ModelEngine;
   openRouterModel?: string;
   legacy?: boolean;
@@ -13,7 +12,6 @@ export interface ModelCatalogEntry extends ModelCost {
 export interface NormalizedModelCatalogEntry extends ModelCatalogEntry {
   displayName: string;
   vendor: ModelVendor;
-  menuVisible: boolean;
   engine: ModelEngine;
 }
 
@@ -72,9 +70,8 @@ const inferEngine = (entry: ModelCatalogEntry): ModelEngine => {
 const normalizeModelEntry = (entry: ModelCatalogEntry): NormalizedModelCatalogEntry => {
   const vendor = entry.vendor ?? inferVendor(entry.model);
   const displayName = entry.displayName ?? formatModelDisplayName(entry.model);
-  const menuVisible = entry.menuVisible ?? false;
   const engine = inferEngine({ ...entry, vendor });
-  return { ...entry, vendor, displayName, menuVisible, engine };
+  return { ...entry, vendor, displayName, engine };
 };
 
 export const kModelCatalog: NormalizedModelCatalogEntry[] = (costs as ModelCatalogEntry[]).map(
@@ -106,5 +103,3 @@ export const isOpenRouterModel = (modelId: string): boolean =>
 export const getOpenRouterModelId = (modelId: string): string =>
   getModelById(modelId)?.openRouterModel ?? modelId;
 
-export const getMenuModels = (): NormalizedModelCatalogEntry[] =>
-  kModelCatalog.filter((entry) => entry.menuVisible);
