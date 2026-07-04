@@ -28,6 +28,15 @@
     "maxOutputTokens": 65536
   },
   {
+    "model": "gemini-3.1-flash-lite",
+    "engine": "gemini",
+    "menuVisible": true,
+    "inputTokenValue": 1.25,
+    "outputTokenValue": 21,
+    "maxInputTokens": 1048576,
+    "maxOutputTokens": 65536
+  },
+  {
     "model": "gemini-2.0-flash",
     "engine": "gemini",
     "menuVisible": true,
