@@ -1,6 +1,5 @@
-import { ApiType, ApiUsage, Period } from '../types';
+import { ApiUsage, Period } from '../types';
 import { config } from '../config';
-import { getApiTypeForModel } from '../llm/model-catalog';
 
 // ─── Quota constants ────────────────────────────────────────────────────────
 
@@ -18,16 +17,13 @@ export const kPeriodSeconds: Record<Period, number> = {
 export const kNoUsageRecordErrorName = 'NoUsageRecordError';
 
 export class NoUsageRecordError extends Error {
-  constructor(userId: string, apiType: string) {
-    super(`No usage record found for user: ${userId} and API: ${apiType}`);
+  constructor(userId: string) {
+    super(`No usage record found for user: ${userId}`);
     this.name = kNoUsageRecordErrorName;
   }
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
-
-/** Resolve a real model id to its ApiType bucket. */
-export const getApiType = (modelName: string): ApiType => getApiTypeForModel(modelName);
 
 /** Pure check: has the current quota window elapsed? */
 export const shouldResetQuota = (usage: ApiUsage): boolean => {
@@ -44,14 +40,14 @@ export const shouldResetQuota = (usage: ApiUsage): boolean => {
  * implementations are selected by config (`QUOTA_STORE`).
  */
 export interface QuotaStore {
-  /** Load usage for a user + ApiType. Throws {@link NoUsageRecordError} if none exists. */
-  getUserQuota(userId: string, apiType: ApiType): Promise<ApiUsage>;
+  /** Load usage for a user. Throws {@link NoUsageRecordError} if none exists. */
+  getUserQuota(userId: string): Promise<ApiUsage>;
   /** Record consumed credits (fire-and-forget from the caller's perspective). */
-  updateApiUsage(userId: string, apiType: ApiType, credits: number): Promise<void>;
+  updateApiUsage(userId: string, credits: number): Promise<void>;
   /** Reset the usage counter for a new period. */
   resetQuota(userId: string, usage: ApiUsage): Promise<void>;
-  /** Create and persist a default quota record for a user + ApiType. */
-  provisionQuota(userId: string, apiType: ApiType): Promise<ApiUsage>;
+  /** Create and persist a default quota record for a user. */
+  provisionQuota(userId: string): Promise<ApiUsage>;
 }
 
 let cachedStore: QuotaStore | undefined;

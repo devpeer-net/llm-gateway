@@ -63,7 +63,6 @@ export type ModelEngine = 'openai' | 'gemini' | 'openrouter';
 export interface ModelCost {
   _comment?: string;
   model: LLMModel;
-  apiType: ApiType;
   inputTokenValue: number; // usually 1
   outputTokenValue: number; // inputTokenValue * coefficient
   maxInputTokens?: number;
@@ -76,11 +75,6 @@ export enum Period {
   DAY = 'DAY',
   WEEK = 'WEEK',
   MONTH = 'MONTH',
-}
-
-export enum ApiType {
-  SMALL_LLM = 'SMALL_LLM',
-  BIG_LLM = 'BIG_LLM',
 }
 
 export enum SubscriptionPlan {
@@ -105,7 +99,6 @@ export interface ApiRequestRecord {
 
 export interface ApiUsage {
   userId: string;
-  apiType: ApiType;
   plan: SubscriptionPlan;
   bonusCredits: number;
   createdAt: string;

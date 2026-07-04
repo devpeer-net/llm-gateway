@@ -1,4 +1,4 @@
-import { ApiType, ApiUsage, Period, SubscriptionPlan } from '../types';
+import { ApiUsage, Period, SubscriptionPlan } from '../types';
 import {
   kDefaultMonthlyQuota,
   kPeriodSeconds,
@@ -15,23 +15,23 @@ import {
 export class InMemoryQuotaStore implements QuotaStore {
   private readonly usages = new Map<string, ApiUsage>();
 
-  private key(userId: string, apiType: ApiType): string {
-    return `${userId}:${apiType}`;
+  private key(userId: string): string {
+    return userId;
   }
 
-  async getUserQuota(userId: string, apiType: ApiType): Promise<ApiUsage> {
-    const usage = this.usages.get(this.key(userId, apiType));
+  async getUserQuota(userId: string): Promise<ApiUsage> {
+    const usage = this.usages.get(this.key(userId));
     if (!usage) {
-      throw new NoUsageRecordError(userId, apiType);
+      throw new NoUsageRecordError(userId);
     }
     return usage;
   }
 
-  async updateApiUsage(userId: string, apiType: ApiType, credits: number): Promise<void> {
-    const key = this.key(userId, apiType);
+  async updateApiUsage(userId: string, credits: number): Promise<void> {
+    const key = this.key(userId);
     let usage = this.usages.get(key);
     if (!usage) {
-      usage = await this.provisionQuota(userId, apiType);
+      usage = await this.provisionQuota(userId);
     }
     const now = Date.now();
     usage.usageCount += credits;
@@ -42,7 +42,7 @@ export class InMemoryQuotaStore implements QuotaStore {
   }
 
   async resetQuota(userId: string, usage: ApiUsage): Promise<void> {
-    const key = this.key(userId, usage.apiType);
+    const key = this.key(userId);
     const existing = this.usages.get(key) ?? usage;
     existing.usageCount = 0;
     existing.periodStart = new Date().toISOString();
@@ -50,11 +50,10 @@ export class InMemoryQuotaStore implements QuotaStore {
     this.usages.set(key, existing);
   }
 
-  async provisionQuota(userId: string, apiType: ApiType): Promise<ApiUsage> {
+  async provisionQuota(userId: string): Promise<ApiUsage> {
     const currentDateStr = new Date().toISOString();
     const usage: ApiUsage = {
       userId,
-      apiType,
       plan: SubscriptionPlan.FREE,
       usageCount: 0,
       quota: kUnlimitedQuotaValue > kDefaultMonthlyQuota ? kUnlimitedQuotaValue : kDefaultMonthlyQuota,
@@ -67,7 +66,7 @@ export class InMemoryQuotaStore implements QuotaStore {
       updatedAt: currentDateStr,
       requests: [],
     };
-    this.usages.set(this.key(userId, apiType), usage);
+    this.usages.set(this.key(userId), usage);
     return usage;
   }
 }

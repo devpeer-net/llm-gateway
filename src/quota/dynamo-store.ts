@@ -7,7 +7,7 @@ import {
   ReturnValue,
   UpdateItemCommand,
 } from '@aws-sdk/client-dynamodb';
-import { ApiType, ApiUsage, Period, SubscriptionPlan } from '../types';
+import { ApiUsage, Period, SubscriptionPlan } from '../types';
 import { config } from '../config';
 import dynamoDbClient from './dynamo-client';
 import {
@@ -21,7 +21,6 @@ const API_USAGE_TABLE = config.quota.apiUsageTable;
 
 const dbItemToApiUsage = (item: any): ApiUsage => ({
   userId: item.userId.S,
-  apiType: item.apiType.S,
   plan: item.plan?.S,
   bonusCredits: item.bonusCredits?.N ? Number(item.bonusCredits.N) : 0,
   createdAt: item.createdAt!.S,
@@ -55,24 +54,23 @@ const dbItemToApiUsage = (item: any): ApiUsage => ({
  * exposes it through the backend-agnostic {@link QuotaStore} interface.
  */
 export class DynamoQuotaStore implements QuotaStore {
-  async getUserQuota(userId: string, apiType: ApiType): Promise<ApiUsage> {
+  async getUserQuota(userId: string): Promise<ApiUsage> {
     const result: GetItemCommandOutput = await dynamoDbClient.send(
       new GetItemCommand({
         TableName: API_USAGE_TABLE,
         Key: {
           userId: { S: userId },
-          apiType: { S: apiType },
         },
       })
     );
 
     if (!result.Item) {
-      throw new NoUsageRecordError(userId, apiType);
+      throw new NoUsageRecordError(userId);
     }
     return dbItemToApiUsage(result.Item);
   }
 
-  private async recordApiUsage(userId: string, apiType: ApiType, usedCredits: number): Promise<void> {
+  private async recordApiUsage(userId: string, usedCredits: number): Promise<void> {
     const now = Date.now();
     const newRequest = {
       M: {
@@ -86,7 +84,6 @@ export class DynamoQuotaStore implements QuotaStore {
         TableName: API_USAGE_TABLE,
         Key: {
           userId: { S: userId },
-          apiType: { S: apiType },
         },
         UpdateExpression:
           'SET #requests = list_append(if_not_exists(#requests, :emptyList), :newRequest), #updatedAt = :updatedAt',
@@ -103,8 +100,8 @@ export class DynamoQuotaStore implements QuotaStore {
     );
   }
 
-  async updateApiUsage(userId: string, apiType: ApiType, usedCredits: number): Promise<void> {
-    this.recordApiUsage(userId, apiType, usedCredits).catch((error) => {
+  async updateApiUsage(userId: string, usedCredits: number): Promise<void> {
+    this.recordApiUsage(userId, usedCredits).catch((error) => {
       console.error('Error recording API usage:', error);
     });
 
@@ -112,7 +109,6 @@ export class DynamoQuotaStore implements QuotaStore {
       TableName: API_USAGE_TABLE,
       Key: {
         userId: { S: userId },
-        apiType: { S: apiType },
       },
       UpdateExpression: 'SET bonusCredits = bonusCredits - :usedCredits, lastRequestAt = :now',
       ConditionExpression: 'bonusCredits >= :usedCredits',
@@ -133,7 +129,6 @@ export class DynamoQuotaStore implements QuotaStore {
             TableName: API_USAGE_TABLE,
             Key: {
               userId: { S: userId },
-              apiType: { S: apiType },
             },
             UpdateExpression:
               'SET usageCount = if_not_exists(usageCount, :start) + :inc, lastRequestAt = :now',
@@ -166,7 +161,6 @@ export class DynamoQuotaStore implements QuotaStore {
         TableName: API_USAGE_TABLE,
         Key: {
           userId: { S: userId },
-          apiType: { S: apiUsage.apiType },
         },
         UpdateExpression: 'SET usageCount = :start, updatedAt = :now, periodStart = :newPeriodStart',
         ExpressionAttributeValues: {
@@ -179,11 +173,10 @@ export class DynamoQuotaStore implements QuotaStore {
     );
   }
 
-  async provisionQuota(userId: string, apiType: ApiType): Promise<ApiUsage> {
+  async provisionQuota(userId: string): Promise<ApiUsage> {
     const currentDateStr = new Date().toISOString();
     const apiUsage: ApiUsage = {
       userId,
-      apiType,
       plan: SubscriptionPlan.FREE,
       usageCount: 0,
       quota: kDefaultMonthlyQuota,
@@ -200,7 +193,6 @@ export class DynamoQuotaStore implements QuotaStore {
       TableName: API_USAGE_TABLE,
       Item: {
         userId: { S: apiUsage.userId },
-        apiType: { S: apiUsage.apiType },
         plan: { S: apiUsage.plan },
         usageCount: { N: apiUsage.usageCount.toString() },
         quota: { N: apiUsage.quota.toString() },

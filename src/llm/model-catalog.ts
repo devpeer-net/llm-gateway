@@ -1,4 +1,4 @@
-import { ApiType, LLMModel, ModelCost, ModelEngine, ModelVendor } from '../types';
+import { LLMModel, ModelCost, ModelEngine, ModelVendor } from '../types';
 import costsData from './costs/costs.json';
 
 export interface ModelCatalogEntry extends ModelCost {
@@ -108,11 +108,3 @@ export const getOpenRouterModelId = (modelId: string): string =>
 
 export const getMenuModels = (): NormalizedModelCatalogEntry[] =>
   kModelCatalog.filter((entry) => entry.menuVisible);
-
-export const getApiTypeForModel = (modelId: string): ApiType => {
-  const entry = getModelById(modelId);
-  if (!entry) {
-    throw new Error(`Unsupported model id: ${modelId}`);
-  }
-  return entry.apiType;
-};

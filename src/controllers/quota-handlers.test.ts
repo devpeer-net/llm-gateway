@@ -6,12 +6,12 @@ process.env.JEST_WORKER_ID = process.env.JEST_WORKER_ID || '1';
 
 import {
   hasEnoughCredits,
-  resolveApiType,
   shouldRateLimit,
   getRecentUsage,
   kLlmRateLimitThreshold,
 } from './quota-handlers';
-import { ApiType, SubscriptionPlan } from '../types';
+import { SubscriptionPlan } from '../types';
+
 import { kChatCompletionsPath } from '../paths';
 
 describe('hasEnoughCredits', () => {
@@ -34,23 +34,6 @@ describe('hasEnoughCredits', () => {
     const req = { path: kChatCompletionsPath, body: { model: 'gpt-4o-mini', messages: [{ content: 'Hi' }] } } as Request;
     const usage = { usageCount: 9, quota: 10, bonusCredits: 1000 };
     expect(hasEnoughCredits(usage as any, req)).toBe(true);
-  });
-});
-
-describe('resolveApiType', () => {
-  it('resolves a chat model to its ApiType', () => {
-    const req = { path: kChatCompletionsPath, body: { model: 'gpt-4o-mini' } } as Request;
-    expect(resolveApiType(req)).toBe(ApiType.SMALL_LLM);
-  });
-
-  it('resolves a proxy model via its primary underlying model', () => {
-    const req = { path: kChatCompletionsPath, body: { model: 'gateway-fast' } } as Request;
-    expect(resolveApiType(req)).toBe(ApiType.SMALL_LLM);
-  });
-
-  it('throws for an unknown path', () => {
-    const req = { path: '/some-unknown-path', body: {} } as Request;
-    expect(() => resolveApiType(req)).toThrow();
   });
 });
 
@@ -79,37 +62,29 @@ describe('shouldRateLimit', () => {
   it('returns false for FREE plan regardless of usage', () => {
     const apiUsage = {
       plan: SubscriptionPlan.FREE,
-      apiType: ApiType.SMALL_LLM,
       requests: [{ usage: kLlmRateLimitThreshold + 1, timestamp: now }],
     };
     expect(shouldRateLimit(apiUsage as any)).toBe(false);
   });
 
-  it('returns true for SMALL_LLM when recent usage exceeds the threshold', () => {
+  it('returns true for a paid plan when recent usage exceeds the threshold', () => {
     const apiUsage = {
       plan: SubscriptionPlan.BASIC,
-      apiType: ApiType.SMALL_LLM,
       requests: [{ usage: kLlmRateLimitThreshold + 1, timestamp: now }],
     };
     expect(shouldRateLimit(apiUsage as any)).toBe(true);
   });
 
-  it('returns false for SMALL_LLM when recent usage is under the threshold', () => {
+  it('returns false for a paid plan when recent usage is under the threshold', () => {
     const apiUsage = {
       plan: SubscriptionPlan.BASIC,
-      apiType: ApiType.SMALL_LLM,
       requests: [{ usage: kLlmRateLimitThreshold / 2, timestamp: now }],
     };
     expect(shouldRateLimit(apiUsage as any)).toBe(false);
   });
 
-  it('returns true for a paid plan and unsupported API type', () => {
-    const apiUsage = { plan: SubscriptionPlan.BASIC, apiType: ApiType.BIG_LLM, requests: [] };
-    expect(shouldRateLimit(apiUsage as any)).toBe(true);
-  });
-
   it('returns false when the requests array is missing or empty', () => {
-    expect(shouldRateLimit({ plan: SubscriptionPlan.BASIC, apiType: ApiType.SMALL_LLM } as any)).toBe(false);
+    expect(shouldRateLimit({ plan: SubscriptionPlan.BASIC } as any)).toBe(false);
   });
 });
 
@@ -121,7 +96,6 @@ describe('enforcement flag (fail closed)', () => {
   const overQuota = { usageCount: 9, quota: 10, bonusCredits: 2 } as any;
   const rateLimited = {
     plan: SubscriptionPlan.BASIC,
-    apiType: ApiType.SMALL_LLM,
     requests: [{ usage: kLlmRateLimitThreshold + 1, timestamp: Date.now() }],
   } as any;
 
