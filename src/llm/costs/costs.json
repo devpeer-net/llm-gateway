@@ -27,6 +27,10 @@
   {
     "model": "gemini-3.1-flash-lite",
     "engine": "gemini",
+    "providers": [
+      { "engine": "gemini" },
+      { "engine": "openrouter", "openRouterModel": "google/gemini-3.1-flash-lite" }
+    ],
     "inputTokenValue": 1.25,
     "outputTokenValue": 21,
     "maxInputTokens": 1048576,

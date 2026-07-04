@@ -1,5 +1,7 @@
 import { OpenAI } from 'openai';
 
+export const isConfigured = Boolean(process.env.OPENAI_API_KEY);
+
 if (!process.env.OPENAI_API_KEY) {
   if (process.env.NODE_ENV !== 'test') {
     console.error('OPENAI_API_KEY environment variable is not set');

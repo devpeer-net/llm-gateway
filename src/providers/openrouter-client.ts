@@ -1,5 +1,7 @@
 import OpenAI from 'openai';
 
+export const isConfigured = Boolean(process.env.OPENROUTER_API_KEY);
+
 if (!process.env.OPENROUTER_API_KEY) {
   if (process.env.NODE_ENV !== 'test') {
     console.error('OPENROUTER_API_KEY environment variable is not set');

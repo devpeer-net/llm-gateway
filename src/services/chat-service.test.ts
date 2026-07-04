@@ -125,3 +125,85 @@ describe('proxy model OpenRouter fallback', () => {
     });
   });
 });
+
+// ─── Provider-level fallback (5xx / auth errors on direct model requests) ───
+
+describe('provider-level fallback', () => {
+  const mockMessages: ChatCompletionMessageParam[] = [{ role: 'user', content: 'hello' }];
+  const mockApiUsage = {} as any;
+  const mockGenerate = jest.mocked(generateOpenAI);
+
+  const fakeHeaders = { get: () => null } as any;
+  const make5xx = () =>
+    new OpenAI.InternalServerError(500, null as any, 'Internal Server Error', fakeHeaders);
+  const make401 = () =>
+    new OpenAI.AuthenticationError(401, null as any, 'Unauthorized', fakeHeaders);
+
+  beforeEach(() => {
+    mockGenerate.mockReset();
+  });
+
+  // gemini-3.1-flash-lite has providers: [gemini, openrouter].
+  // In tests all providers report isConfigured=false (jest.mock replaces modules),
+  // so the fallback logic tries all providers in catalog order.
+
+  it('falls back to openrouter when gemini returns a 5xx error', async () => {
+    mockGenerate
+      .mockRejectedValueOnce(make5xx()) // gemini → 500
+      .mockResolvedValueOnce(mockCompletion as any); // openrouter → success
+
+    const body = { model: 'gemini-3.1-flash-lite', messages: mockMessages } as any;
+    const result = await generate(body, mockApiUsage);
+
+    expect(result).toEqual(mockCompletion);
+    expect(mockGenerate).toHaveBeenCalledTimes(2);
+    // Second call must target openrouter (isOpenrouter flag = true).
+    expect(mockGenerate.mock.calls[1][2]).toBe(true);
+    // And must use the catalog openRouterModel ID.
+    expect((mockGenerate.mock.calls[1][1] as any).model).toBe('google/gemini-3.1-flash-lite');
+  });
+
+  it('falls back to openrouter when gemini returns a 401 (bad/revoked key)', async () => {
+    mockGenerate
+      .mockRejectedValueOnce(make401()) // gemini → 401
+      .mockResolvedValueOnce(mockCompletion as any); // openrouter → success
+
+    const body = { model: 'gemini-3.1-flash-lite', messages: mockMessages } as any;
+    const result = await generate(body, mockApiUsage);
+
+    expect(result).toEqual(mockCompletion);
+    expect(mockGenerate).toHaveBeenCalledTimes(2);
+    expect(mockGenerate.mock.calls[1][2]).toBe(true); // openrouter path
+  });
+
+  it('does NOT fall back on a 4xx client error (e.g. bad request)', async () => {
+    const bad400 = new OpenAI.BadRequestError(400, null as any, 'Bad Request', fakeHeaders);
+    mockGenerate.mockRejectedValueOnce(bad400);
+
+    const body = { model: 'gemini-3.1-flash-lite', messages: mockMessages } as any;
+    await expect(generate(body, mockApiUsage)).rejects.toBeInstanceOf(OpenAI.BadRequestError);
+    expect(mockGenerate).toHaveBeenCalledTimes(1);
+  });
+
+  it('throws the last error when all providers fail with 5xx', async () => {
+    mockGenerate
+      .mockRejectedValueOnce(make5xx()) // gemini
+      .mockRejectedValueOnce(make5xx()); // openrouter
+
+    const body = { model: 'gemini-3.1-flash-lite', messages: mockMessages } as any;
+    await expect(generate(body, mockApiUsage)).rejects.toBeInstanceOf(OpenAI.InternalServerError);
+    expect(mockGenerate).toHaveBeenCalledTimes(2);
+  });
+
+  it('routes a single-provider model directly without attempting fallback', async () => {
+    // gpt-4o has no providers array → derives single provider [{ engine: 'openai' }].
+    mockGenerate.mockResolvedValueOnce(mockCompletion as any);
+
+    const body = { model: 'gpt-4o', messages: mockMessages } as any;
+    const result = await generate(body, mockApiUsage);
+
+    expect(result).toEqual(mockCompletion);
+    expect(mockGenerate).toHaveBeenCalledTimes(1);
+    expect(mockGenerate.mock.calls[0][2]).toBe(false); // not openrouter
+  });
+});
